@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NFC UID Okuyucu</title>
+<style>
+  :root {
+    --bg: #0f1419; --surface: #1a2029; --surface-2: #222a35; --border: #2d3745;
+    --fg: #e8edf2; --muted: #8b98a8; --accent: #3dd6c4; --accent-ink: #052b27;
+    --ok: #4ade80; --warn: #fbbf24; --err: #f87171;
+    --mono: ui-monospace, 'SF Mono', Menlo, monospace;
+    --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #eef1f4; --surface: #fff; --surface-2: #f3f5f8; --border: #d9dee5;
+      --fg: #1a2029; --muted: #5b6a7d; --accent: #0f9e8e; --accent-ink: #fff;
+      --ok: #15803d; --warn: #b45309; --err: #dc2626;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--fg); font-family: var(--sans); line-height: 1.5;
+    padding: 24px max(16px, env(safe-area-inset-right)) 40px max(16px, env(safe-area-inset-left));
+    max-width: 560px; margin: 0 auto;
+  }
+  h1 { font-size: 1.4rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: .85rem; margin: 0 0 20px; }
+  .scan-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 16px; }
+  .ring { width: 92px; height: 92px; margin: 0 auto 16px; border-radius: 50%; border: 3px solid var(--border);
+    display: grid; place-items: center; color: var(--muted); transition: .2s; }
+  .ring svg { width: 40px; height: 40px; }
+  body.scanning .ring { border-color: var(--accent); color: var(--accent); animation: pulse 1.4s ease-out infinite; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(61,214,196,.45); } 100% { box-shadow: 0 0 0 18px transparent; } }
+  @media (prefers-reduced-motion: reduce) { body.scanning .ring { animation: none; } }
+  .status { font-size: .9rem; color: var(--muted); min-height: 1.4em; }
+  .status.ok { color: var(--ok); } .status.err { color: var(--err); } .status.warn { color: var(--warn); }
+  .uid-box { margin-top: 16px; background: var(--surface-2); border: 1px dashed var(--border); border-radius: 12px; padding: 14px; display: none; }
+  .uid-box.show { display: block; }
+  .uid-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 6px; }
+  .uid-value { font-family: var(--mono); font-size: 1.25rem; font-weight: 600; word-break: break-all; color: var(--accent); }
+  .uid-match { margin-top: 8px; font-size: .85rem; font-weight: 600; }
+  button { font: inherit; cursor: pointer; border-radius: 10px; border: 1px solid transparent; padding: 11px 18px; font-weight: 600; }
+  .btn-primary { background: var(--accent); color: var(--accent-ink); width: 100%; margin-top: 18px; }
+  .btn-ghost { background: var(--surface-2); color: var(--fg); border-color: var(--border); }
+  .btn-sm { padding: 7px 12px; font-size: .8rem; }
+  .row { display: flex; gap: 8px; margin-top: 10px; }
+  .row input { font: inherit; flex: 1; min-width: 0; background: var(--surface-2); color: var(--fg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+  section.saved h2 { font-size: .95rem; margin: 24px 0 10px; }
+  ul.cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  li.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+  li.card .meta { min-width: 0; flex: 1; }
+  li.card .name { font-weight: 600; font-size: .95rem; }
+  li.card .uid { font-family: var(--mono); font-size: .78rem; color: var(--muted); word-break: break-all; }
+  li.card.hit { border-color: var(--ok); box-shadow: inset 0 0 0 1px var(--ok); }
+  .empty { color: var(--muted); font-size: .85rem; padding: 14px; text-align: center; border: 1px dashed var(--border); border-radius: 12px; }
+  .note { margin-top: 22px; font-size: .8rem; color: var(--muted); background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--warn); border-radius: 8px; padding: 12px 14px; }
+  .note b { color: var(--fg); }
+  code { font-family: var(--mono); font-size: .85em; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>NFC UID Okuyucu</h1>
+<p class="sub">Android + Chrome üzerinde kartı telefonun arkasına yaklaştır, UID ekrana gelsin.</p>
+
+<div class="scan-card">
+  <div class="ring" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="M5 9a9 9 0 0 1 0 6M8.5 7a13 13 0 0 1 0 10M12 5a17 17 0 0 1 0 14"/>
+    </svg>
+  </div>
+  <p class="status" id="status">Başlatmak için butona dokun.</p>
+  <div class="uid-box" id="uidBox">
+    <div class="uid-label">Okunan UID</div>
+    <div class="uid-value" id="uidValue">—</div>
+    <div class="uid-match" id="uidMatch"></div>
+    <div class="row" id="registerRow" hidden>
+      <input id="cardName" type="text" placeholder="Kart adı (örn. Mert'in kartı)" autocomplete="off">
+      <button class="btn-ghost btn-sm" id="saveBtn">Kaydet</button>
+    </div>
+  </div>
+  <button class="btn-primary" id="scanBtn">NFC Okumayı Başlat</button>
+</div>
+
+<section class="saved">
+  <h2>Kayıtlı kartlar</h2>
+  <ul class="cards" id="cardList"></ul>
+</section>
+
+<div class="note">
+  <b>Not:</b> Web NFC yalnızca <b>Android'de Chrome/Edge</b> ve <code>https://</code> (veya <code>localhost</code>) üzerinde, <b>top-level sayfada</b> çalışır. iframe, iPhone ve masaüstü desteklemez.
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var KEY = "nfc_registered_cards_v1";
+  var statusEl = document.getElementById("status"),
+      uidBox = document.getElementById("uidBox"),
+      uidValue = document.getElementById("uidValue"),
+      uidMatch = document.getElementById("uidMatch"),
+      registerRow = document.getElementById("registerRow"),
+      cardName = document.getElementById("cardName"),
+      saveBtn = document.getElementById("saveBtn"),
+      scanBtn = document.getElementById("scanBtn"),
+      cardList = document.getElementById("cardList"),
+      lastUid = null, scanning = false;
+
+  function setStatus(m, k) { statusEl.textContent = m; statusEl.className = "status" + (k ? " " + k : ""); }
+  function loadCards() { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch (e) { return []; } }
+  function saveCards(l) { try { localStorage.setItem(KEY, JSON.stringify(l)); } catch (e) {} }
+
+  function renderCards(active) {
+    var cards = loadCards(); cardList.innerHTML = "";
+    if (!cards.length) {
+      var li = document.createElement("li"); li.className = "empty";
+      li.textContent = "Henüz kayıtlı kart yok. Bir kart okut ve kaydet."; cardList.appendChild(li); return;
+    }
+    cards.forEach(function (c, i) {
+      var li = document.createElement("li"); li.className = "card" + (active && c.uid === active ? " hit" : "");
+      var meta = document.createElement("div"); meta.className = "meta";
+      var nm = document.createElement("div"); nm.className = "name"; nm.textContent = c.name;
+      var uid = document.createElement("div"); uid.className = "uid"; uid.textContent = c.uid;
+      meta.appendChild(nm); meta.appendChild(uid);
+      var del = document.createElement("button"); del.className = "btn-ghost btn-sm"; del.textContent = "Sil";
+      del.addEventListener("click", function () { var l = loadCards(); l.splice(i, 1); saveCards(l); renderCards(lastUid); });
+      li.appendChild(meta); li.appendChild(del); cardList.appendChild(li);
+    });
+  }
+
+  function onUid(uid) {
+    lastUid = uid; uidBox.classList.add("show"); uidValue.textContent = uid;
+    var known = loadCards().filter(function (c) { return c.uid === uid; })[0];
+    if (known) { uidMatch.textContent = "✓ Tanınan kart: " + known.name; uidMatch.style.color = "var(--ok)"; registerRow.hidden = true; }
+    else { uidMatch.textContent = "Kayıtlı değil — istersen aşağıdan kaydet."; uidMatch.style.color = "var(--muted)"; registerRow.hidden = false; cardName.value = ""; }
+    renderCards(uid);
+  }
+
+  saveBtn.addEventListener("click", function () {
+    if (!lastUid) return;
+    var name = (cardName.value || "").trim() || ("Kart " + lastUid.slice(0, 6));
+    var l = loadCards();
+    if (l.some(function (c) { return c.uid === lastUid; })) { setStatus("Bu UID zaten kayıtlı.", "warn"); return; }
+    l.push({ name: name, uid: lastUid, at: Date.now() }); saveCards(l);
+    registerRow.hidden = true; uidMatch.textContent = "✓ Kaydedildi: " + name; uidMatch.style.color = "var(--ok)"; renderCards(lastUid);
+  });
+
+  function startScan() {
+    if (!("NDEFReader" in window)) { setStatus("Bu cihaz/tarayıcı Web NFC desteklemiyor. Android'de Chrome kullan.", "err"); return; }
+    if (scanning) return;
+    var reader = new NDEFReader();
+    reader.scan().then(function () {
+      scanning = true; document.body.classList.add("scanning");
+      scanBtn.textContent = "Okunuyor… kartı yaklaştır"; setStatus("Hazır. Kartı telefonun arkasına değdir.", "ok");
+      reader.addEventListener("readingerror", function () { setStatus("Kart okunamadı, tekrar dene.", "err"); });
+      reader.addEventListener("reading", function (e) {
+        var raw = e.serialNumber || ""; onUid(raw ? raw.toUpperCase() : "(UID alınamadı)"); setStatus("Okundu.", "ok");
+      });
+    }).catch(function (err) {
+      if (err && err.name === "NotAllowedError") setStatus("NFC izni verilmedi. Tarayıcı izinlerini kontrol et.", "err");
+      else setStatus("Başlatılamadı: " + (err && err.message ? err.message : err), "err");
+    });
+  }
+
+  scanBtn.addEventListener("click", startScan);
+  renderCards(null);
+})();
+</script>
+</body>
+</html>
