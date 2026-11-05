@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1419">
+<title>NFC Giriş · İndir</title>
+<style>
+  :root { --bg:#0f1419; --surface:#1a2029; --border:#2d3745; --fg:#e8edf2; --muted:#8b98a8; --accent:#3dd6c4; --accent-ink:#052b27; }
+  @media (prefers-color-scheme: light){ :root{ --bg:#eef1f4; --surface:#fff; --border:#d9dee5; --fg:#1a2029; --muted:#5b6a7d; --accent:#0f9e8e; --accent-ink:#fff; } }
+  *{box-sizing:border-box} html,body{margin:0}
+  body{background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Roboto,sans-serif;line-height:1.55;
+    padding:32px max(16px,env(safe-area-inset-right)) 48px max(16px,env(safe-area-inset-left));max-width:520px;margin:0 auto}
+  h1{font-size:1.5rem;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 24px}
+  .dl{display:block;text-align:center;background:var(--accent);color:var(--accent-ink);text-decoration:none;
+    font-weight:700;padding:16px;border-radius:14px;font-size:1.05rem}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-top:20px}
+  ol{margin:8px 0 0;padding-left:20px} li{margin:7px 0}
+  .muted{color:var(--muted);font-size:.85rem}
+  code{background:rgba(125,125,125,.15);padding:1px 6px;border-radius:5px;font-size:.9em}
+</style>
+</head>
+<body>
+  <h1>NFC Giriş</h1>
+  <p class="sub">Kartın UID'sini okuyan Android uygulaması.</p>
+
+  <a class="dl" href="./nfc-giris.apk" download>📥 Uygulamayı indir (APK)</a>
+
+  <div class="card">
+    <strong>Kurulum</strong>
+    <ol>
+      <li>Bu sayfayı <strong>Android telefonunda Chrome</strong> ile aç.</li>
+      <li>Yukarıdaki <strong>İndir</strong> butonuna bas.</li>
+      <li>İnen <code>nfc-giris.apk</code> dosyasına dokun.</li>
+      <li>"Bu kaynaktan uygulama yükle" izni çıkarsa <strong>izin ver</strong> (Chrome'a).</li>
+      <li><strong>Yükle</strong> → <strong>Aç</strong>.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <strong>Kullanım</strong>
+    <ol>
+      <li>Uygulamayı aç, NFC açık olsun.</li>
+      <li>Kartı telefonun arkasına (üst-orta) değdir → isim ver → <strong>Kaydet</strong>.</li>
+      <li>Çıkış yap, kartı tekrar okut → giriş yapılır.</li>
+      <li>Ana ekranda <strong>"Bu cihazda kartsız giriş"</strong> anahtarını aç → bir daha kart gerekmez.</li>
+    </ol>
+  </div>
+
+  <p class="muted">Not: Bu bir geliştirme (debug) sürümüdür; bu yüzden "bilinmeyen kaynak" uyarısı normaldir. Veriler yalnızca telefonunda saklanır.</p>
+</body>
+</html>
